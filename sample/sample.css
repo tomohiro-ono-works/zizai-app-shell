@@ -1,0 +1,279 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app-shell-root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #f7f5ff;
+}
+
+#app-shell-root .zui-shell {
+  min-height: 100%;
+  height: 100%;
+}
+
+.sample-brand {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 0 8px;
+}
+
+.sample-brand img {
+  width: 30px;
+  height: 30px;
+}
+
+.sample-sidebar {
+  min-height: 100%;
+  padding: 10px;
+  color: #4b4e63;
+  background: #f7f5ff;
+}
+
+.sample-section-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #9ca0b5;
+  text-transform: uppercase;
+}
+
+.sample-tree,
+.sample-tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sample-tree ul {
+  padding-left: 17px;
+}
+
+.sample-tree-item {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.sample-tree-item:hover,
+.sample-tree-item.is-current {
+  background: #ececf4;
+}
+
+.sample-tree-item img {
+  width: 14px;
+  height: 14px;
+}
+
+.sample-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(#e8eaf2 1px, transparent 1px),
+    linear-gradient(90deg, #e8eaf2 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.sample-canvas-toolbar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid #c8cad8;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.sample-canvas-toolbar button {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid #c8cad8;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #4b4e63;
+  font: 12px system-ui, sans-serif;
+}
+
+.sample-flow-line {
+  position: absolute;
+  top: 235px;
+  left: 230px;
+  width: 370px;
+  height: 2px;
+  background: #5c6f88;
+  transform: rotate(-3deg);
+  transform-origin: left center;
+}
+
+.sample-flow-line::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  right: -1px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid #5c6f88;
+}
+
+.sample-node {
+  position: absolute;
+  width: 150px;
+  min-height: 112px;
+  padding: 12px;
+  border: 1px solid #6f8099;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.sample-node--source {
+  top: 178px;
+  left: 80px;
+}
+
+.sample-node--transform {
+  top: 155px;
+  left: 600px;
+  border-color: #5e1ef6;
+}
+
+.sample-node-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  border-radius: 9px;
+  background: #ebe6ff;
+}
+
+.sample-node-icon img {
+  width: 19px;
+  height: 19px;
+}
+
+.sample-node-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b4e63;
+}
+
+.sample-node-description {
+  margin-top: 4px;
+  color: #626b7b;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sample-text-editor {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.sample-text-path {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e4e6ef;
+  background: #f9fafe;
+  color: #9ca0b5;
+  font-size: 12px;
+}
+
+.sample-code {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  color: #1f2937;
+  background: #ffffff;
+  font: 12px/1.55 Consolas, "Courier New", monospace;
+  white-space: pre;
+}
+
+.sample-properties {
+  height: 100%;
+  padding: 14px;
+  background: #e3e3f3;
+  color: #4b4e63;
+}
+
+.sample-properties h2 {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.sample-field {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.sample-field label {
+  color: #767b93;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sample-field input,
+.sample-field select {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #c8cad8;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #4b4e63;
+}
+
+.sample-terminal {
+  height: 100%;
+  padding: 12px;
+  overflow: auto;
+  background: #ffffff;
+  color: #4b4e63;
+  font: 12px/1.5 Consolas, monospace;
+}
+
+.sample-terminal-line {
+  display: flex;
+  gap: 8px;
+}
+
+.sample-terminal-time {
+  color: #9ca0b5;
+}
+
+.sample-status-brand {
+  padding-left: 2px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
