@@ -10,6 +10,7 @@
       item.dataset.tabId = tab.id;
       item.setAttribute("role", "tab");
       item.setAttribute("aria-selected", tab.id === activeTabId ? "true" : "false");
+      item.draggable = !!tab.reorderable;
       if (tab.id === activeTabId) item.classList.add("is-active");
 
       const activate = documentRef.createElement("button");

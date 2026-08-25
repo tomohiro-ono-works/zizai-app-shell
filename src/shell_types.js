@@ -34,6 +34,17 @@
     return Math.min(maximum, Math.max(minimum, Math.round(number)));
   }
 
+  function normalizeContextAction(value) {
+    const source = value && typeof value === "object" ? value : {};
+    const id = text(source.id);
+    if (!id) return null;
+    return {
+      id,
+      label: text(source.label) || id,
+      disabled: !!source.disabled
+    };
+  }
+
   function normalizeTab(value) {
     const source = value && typeof value === "object" ? value : {};
     const id = text(source.id);
@@ -46,7 +57,9 @@
       dirty: !!source.dirty,
       closable: source.closable !== false,
       contentKey: text(source.contentKey),
-      badge: source.badge === undefined || source.badge === null ? "" : String(source.badge)
+      badge: source.badge === undefined || source.badge === null ? "" : String(source.badge),
+      reorderable: !!source.reorderable,
+      contextActions: normalizeItems(source.contextActions, normalizeContextAction)
     };
   }
 
