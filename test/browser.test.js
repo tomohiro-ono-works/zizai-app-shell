@@ -77,7 +77,8 @@
     });
 
     const events = [];
-    ["activity:select", "tab:activate", "tab:close-request", "command:execute", "layout:change"]
+    ["activity:select", "tab:activate", "tab:close-request", "command:execute", "layout:change",
+      "tab:reorder-request", "tab:context-action"]
       .forEach((name) => shell.on(name, (payload) => events.push({ name, payload })));
 
     shell.setTabs([
@@ -142,6 +143,128 @@
     const disabledAfter = events.filter((entry) => entry.payload?.commandId === "disabled").length;
     assert(disabledBefore === disabledAfter, "disabled shortcut does not emit");
 
+    shell.setTabs([
+      { id: "alpha", title: "alpha.sql", closable: true, reorderable: true },
+      { id: "beta", title: "beta.sql", closable: true, reorderable: true },
+      {
+        id: "gamma",
+        title: "gamma.sql",
+        closable: false,
+        reorderable: false,
+        contextActions: [
+          { id: "rename", label: "Rename" },
+          { id: "remove", label: "Remove", disabled: true }
+        ]
+      }
+    ], "alpha");
+
+    function tabOrder() {
+      return Array.from(root.querySelectorAll(".zui-shell__tab")).map((el) => el.dataset.tabId).join(",");
+    }
+
+    function fireDrag(sourceEl, targetEl, clientX) {
+      const dataTransfer = new DataTransfer();
+      const targetRect = targetEl.getBoundingClientRect();
+      const clientY = targetRect.top + targetRect.height / 2;
+      sourceEl.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer }));
+      targetEl.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer, clientX, clientY }));
+      targetEl.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer, clientX, clientY }));
+      sourceEl.dispatchEvent(new DragEvent("dragend", { bubbles: true, cancelable: true, dataTransfer }));
+    }
+
+    const alphaTab = root.querySelector('[data-tab-id="alpha"]');
+    const betaTab = root.querySelector('[data-tab-id="beta"]');
+    const gammaTab = root.querySelector('[data-tab-id="gamma"]');
+
+    assert(alphaTab.draggable === true, "reorderable: true renders a draggable tab element");
+    assert(gammaTab.draggable === false, "reorderable: false does not render a draggable tab element");
+
+    const orderBeforeDrag = tabOrder();
+    const reorderCountBeforeLeftDrop = events.filter((entry) => entry.name === "tab:reorder-request").length;
+    fireDrag(alphaTab, betaTab, betaTab.getBoundingClientRect().left + 2);
+    const reorderEventsAfterLeftDrop = events.filter((entry) => entry.name === "tab:reorder-request");
+    assert(reorderEventsAfterLeftDrop.length === reorderCountBeforeLeftDrop + 1,
+      "dropping a reorderable tab on the left half of another tab emits exactly one tab:reorder-request");
+    const leftDropPayload = reorderEventsAfterLeftDrop[reorderEventsAfterLeftDrop.length - 1]?.payload;
+    assert(!!leftDropPayload && leftDropPayload.tabId === "alpha" && leftDropPayload.targetTabId === "beta"
+      && leftDropPayload.placement === "before",
+      "left-half drop reports { tabId: 'alpha', targetTabId: 'beta', placement: 'before' }");
+    assert(tabOrder() === orderBeforeDrag,
+      "AppShell does not reorder its own tab DOM after a before-placement reorder request");
+
+    const reorderCountBeforeRightDrop = events.filter((entry) => entry.name === "tab:reorder-request").length;
+    fireDrag(betaTab, alphaTab, alphaTab.getBoundingClientRect().right - 2);
+    const reorderEventsAfterRightDrop = events.filter((entry) => entry.name === "tab:reorder-request");
+    assert(reorderEventsAfterRightDrop.length === reorderCountBeforeRightDrop + 1,
+      "dropping a reorderable tab on the right half of another tab emits exactly one tab:reorder-request");
+    const rightDropPayload = reorderEventsAfterRightDrop[reorderEventsAfterRightDrop.length - 1]?.payload;
+    assert(!!rightDropPayload && rightDropPayload.tabId === "beta" && rightDropPayload.targetTabId === "alpha"
+      && rightDropPayload.placement === "after",
+      "right-half drop reports { tabId: 'beta', targetTabId: 'alpha', placement: 'after' }");
+    assert(tabOrder() === orderBeforeDrag,
+      "AppShell does not reorder its own tab DOM after an after-placement reorder request");
+
+    const reorderCountBeforeNonReorderable = events.filter((entry) => entry.name === "tab:reorder-request").length;
+    fireDrag(gammaTab, alphaTab, alphaTab.getBoundingClientRect().left + 2);
+    const reorderCountAfterNonReorderable = events.filter((entry) => entry.name === "tab:reorder-request").length;
+    assert(reorderCountAfterNonReorderable === reorderCountBeforeNonReorderable,
+      "dragging a tab with reorderable: false does not emit tab:reorder-request");
+
+    assert(!document.querySelector(".zui-shell__tab-context-menu"),
+      "no context menu is rendered before any right-click");
+
+    alphaTab.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2 }));
+    assert(!document.querySelector(".zui-shell__tab-context-menu"),
+      "right-click on a tab without contextActions does not render a context menu");
+
+    gammaTab.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2 }));
+    const menu = document.querySelector(".zui-shell__tab-context-menu");
+    assert(!!menu, "right-click on a tab with contextActions renders a shell-owned context menu");
+    assert(!!menu && shellRoot.contains(menu),
+      "context menu escaping the assigned AppShell root: menu must render inside the mounted .zui-shell root");
+
+    const menuItems = menu ? Array.from(menu.querySelectorAll(".zui-shell__tab-context-menu-item")) : [];
+    assert(menuItems.length === 2, "context menu renders exactly one item per contextActions entry");
+
+    const renameItem = menuItems.find((el) => el.dataset.actionId === "rename");
+    const removeItem = menuItems.find((el) => el.dataset.actionId === "remove");
+    assert(!!renameItem && renameItem.disabled !== true,
+      "the enabled 'rename' action renders as a non-disabled menu item");
+    assert(!!removeItem && (removeItem.disabled === true || removeItem.getAttribute("aria-disabled") === "true"),
+      "the disabled 'remove' action renders as a disabled menu item");
+
+    const contextCountBeforeEnabledClick = events.filter((entry) => entry.name === "tab:context-action").length;
+    renameItem?.click();
+    const contextEventsAfterEnabledClick = events.filter((entry) => entry.name === "tab:context-action");
+    assert(contextEventsAfterEnabledClick.length === contextCountBeforeEnabledClick + 1,
+      "selecting the enabled 'rename' action emits exactly one tab:context-action");
+    const enabledPayload = contextEventsAfterEnabledClick[contextEventsAfterEnabledClick.length - 1]?.payload;
+    assert(!!enabledPayload && enabledPayload.tabId === "gamma" && enabledPayload.actionId === "rename",
+      "tab:context-action payload reports { tabId: 'gamma', actionId: 'rename' }");
+    assert(!document.querySelector(".zui-shell__tab-context-menu"),
+      "selecting a context action closes the menu");
+
+    gammaTab.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2 }));
+    const reopenedMenu = document.querySelector(".zui-shell__tab-context-menu");
+    const reopenedRemoveItem = reopenedMenu?.querySelector('[data-action-id="remove"]');
+    const contextCountBeforeDisabledClick = events.filter((entry) => entry.name === "tab:context-action").length;
+    reopenedRemoveItem?.click();
+    const contextCountAfterDisabledClick = events.filter((entry) => entry.name === "tab:context-action").length;
+    assert(contextCountAfterDisabledClick === contextCountBeforeDisabledClick,
+      "selecting the disabled 'remove' action emits nothing");
+
+    document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    assert(!document.querySelector(".zui-shell__tab-context-menu"),
+      "clicking outside the context menu closes it");
+
+    gammaTab.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2 }));
+    assert(!!document.querySelector(".zui-shell__tab-context-menu"),
+      "right-click reopens the context menu ahead of the escape-key check");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    assert(!document.querySelector(".zui-shell__tab-context-menu"),
+      "pressing Escape closes the context menu");
+
     shell.setLayout({
       sidebarWidth: 360,
       bottomPanelVisible: true,
@@ -166,9 +289,28 @@
     shell.setRegion("main", document.createElement("section"));
     assert(regionCleanupCount === 1, "replacing an adapter-backed region calls its destroy method");
 
+    gammaTab.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2 }));
+    const menuBeforeDestroy = document.querySelector(".zui-shell__tab-context-menu");
+    assert(!!menuBeforeDestroy, "context menu is open immediately before destroy for the cleanup check below");
+
     const oldShellRoot = shellRoot;
     shell.destroy();
+    assert(!document.querySelector(".zui-shell__tab-context-menu"),
+      "destroy removes any open context menu from the document");
     assert(!root.querySelector(".zui-shell"), "destroy removes shell DOM");
+
+    const contextCountBeforeDestroyedClick = events.filter((entry) => entry.name === "tab:context-action").length;
+    menuBeforeDestroy?.querySelector('[data-action-id="rename"]')?.click();
+    const contextCountAfterDestroyedClick = events.filter((entry) => entry.name === "tab:context-action").length;
+    assert(contextCountAfterDestroyedClick === contextCountBeforeDestroyedClick,
+      "clicking a detached context menu item after destroy emits nothing");
+
+    const reorderCountBeforeDestroyedDrag = events.filter((entry) => entry.name === "tab:reorder-request").length;
+    fireDrag(alphaTab, betaTab, betaTab.getBoundingClientRect().left + 2);
+    const reorderCountAfterDestroyedDrag = events.filter((entry) => entry.name === "tab:reorder-request").length;
+    assert(reorderCountAfterDestroyedDrag === reorderCountBeforeDestroyedDrag,
+      "dragging a detached tab after destroy emits nothing, confirming drag state and listeners were cleared");
+
     const eventCountBeforeDestroyedShortcut = events.length;
     oldShellRoot.dispatchEvent(new KeyboardEvent("keydown", {
       key: "s",

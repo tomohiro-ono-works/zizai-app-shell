@@ -303,6 +303,40 @@
   opacity: 1;
 }
 
+.zui-shell__tab-context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 160px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-base);
+  box-shadow: var(--shadow-soft-weak);
+}
+
+.zui-shell__tab-context-menu-item {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zui-shell__tab-context-menu-item:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.zui-shell__tab-context-menu-item:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .zui-shell__commands,
 .zui-shell__status-items {
   min-width: 0;

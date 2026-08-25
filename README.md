@@ -10,6 +10,7 @@ AppShellが担当するのは、アプリケーションの**フレームUI**で
 
 - topbar、activity bar、sidebar、main、right panel、bottom panel、status barの配置
 - tabの表示、active状態、dirty表示、close request
+- tabのdrag&drop並べ替え要求とcontext menuの表示・選択通知
 - activityの表示と選択通知
 - command buttonの表示と実行通知
 - commandに割り当てたshortcutの検出と実行通知
@@ -46,6 +47,7 @@ AppShellは、各領域に表示する**アプリ固有機能の中身**を担�
 <script src="./src/shell_layout.js"></script>
 <script src="./src/shell_regions.js"></script>
 <script src="./src/shell_tabs.js"></script>
+<script src="./src/shell_tab_interactions.js"></script>
 <script src="./src/shell_activitybar.js"></script>
 <script src="./src/shell_shortcuts.js"></script>
 <script src="./src/app_shell.js"></script>
@@ -123,9 +125,25 @@ shell.mount();
   dirty: false,
   closable: true,
   contentKey: "query-1",
-  badge: ""
+  badge: "",
+  reorderable: false,
+  contextActions: []
 }
 ```
+
+`reorderable`をtrueにすると、Tabがdrag&drop可能になります。ドラッグしたTabを別のTabへdropすると、`tab:reorder-request`が発火します。並べ替え自体はAppShellが行わず、アプリ側が`setTabs()`等でTab順を更新します。
+
+`contextActions`にitemを指定すると、そのTab上のright-clickでAppShell自身が管理するcontext menuが表示されます。
+
+```js
+{
+  id: "rename",
+  label: "Rename",
+  disabled: false
+}
+```
+
+有効なactionを選択すると`tab:context-action`が発火します。`disabled: true`のactionは選択しても何も発火しません。
 
 ### Activity
 
@@ -281,6 +299,8 @@ unsubscribe();
 | `activity:select` | `{ activityId }` | Activityを選択したとき |
 | `tab:activate` | `{ tabId }` | UI上でTabを選択したとき |
 | `tab:close-request` | `{ tabId }` | close要求したとき |
+| `tab:reorder-request` | `{ tabId, targetTabId, placement }` | `reorderable`なTabを別のTabへdropしたとき。`placement`は`"before"`または`"after"` |
+| `tab:context-action` | `{ tabId, actionId }` | context menuで有効なactionを選択したとき |
 | `command:execute` | `{ commandId, source }` | command buttonまたはshortcut実行時 |
 | `layout:change` | `{ layout }` | paneのresize、表示、配置等が変わったとき |
 | `region:focus` | `{ region }` | `focusRegion()`でfocusを移したとき |
@@ -301,6 +321,15 @@ AppShell自身はTabを削除しません。
 shell.on("tab:close-request", ({ tabId }) => {
   const nextTabs = appTabs.filter((tab) => tab.id !== tabId);
   shell.setTabs(nextTabs);
+});
+```
+
+AppShell自身はTabの並び替えも行いません。
+
+```js
+shell.on("tab:reorder-request", ({ tabId, targetTabId, placement }) => {
+  const nextTabs = reorder(appTabs, tabId, targetTabId, placement);
+  shell.setTabs(nextTabs, tabId);
 });
 ```
 

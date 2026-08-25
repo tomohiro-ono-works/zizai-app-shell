@@ -26,6 +26,7 @@
     let regionController = null;
     let layoutController = null;
     let shortcutController = null;
+    let tabInteractionsController = null;
 
     function ensureActive() {
       if (destroyed) throw new Error("AppShell instance has been destroyed");
@@ -121,6 +122,17 @@
           emitter.emit("command:execute", payload);
         }
       });
+      tabInteractionsController = modules.shellTabInteractions.createTabInteractionsController({
+        documentRef,
+        host: refs.tabs,
+        getTabs: () => tabs,
+        onReorderRequest(payload) {
+          emitter.emit("tab:reorder-request", payload);
+        },
+        onContextAction(payload) {
+          emitter.emit("tab:context-action", payload);
+        }
+      });
 
       types.REGION_NAMES.forEach((region) => {
         if (Object.prototype.hasOwnProperty.call(regionContent, region)) {
@@ -139,6 +151,7 @@
 
     function destroy() {
       if (destroyed) return;
+      tabInteractionsController?.destroy();
       shortcutController?.destroy();
       layoutController?.destroy();
       regionController?.destroy();
